@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DILAITS Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./vendor/mammoth.browser.min.js"></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <p class="eyebrow">DIgital LAnguage InsighTS</p>
+      <h1>DILAITS</h1>
+      <p class="hero-copy">
+        Tools that work with language.
+      </p>
+    </header>
+
+    <nav class="tool-switcher" aria-label="Tool selector">
+      <button class="tab-button is-active" data-tab="anna-liza" type="button">Anna-Liza</button>
+      <button class="tab-button" data-tab="d-gram" type="button">D-Gram</button>
+      <button class="tab-button" data-tab="about" type="button">About</button>
+    </nav>
+
+    <main>
+      <section class="tab-panel is-active" id="anna-liza">
+        <div class="subtab-switcher" aria-label="Anna-Liza corpus selector">
+          <button class="anna-subtab-button is-active" data-anna-tab="a" type="button">A</button>
+          <button class="anna-subtab-button" data-anna-tab="b" type="button">B</button>
+          <button class="anna-subtab-button" data-anna-tab="comparison" type="button">Comparison</button>
+          <div class="info-popover">
+            <button class="info-button" type="button" aria-label="Comparison tab help">i</button>
+            <div class="info-tooltip">The comparison tab contrasts up to ten corpora. Summary values compare corpus-level measures. Keyword and collocate tables show side-by-side frequencies and relative frequencies. Collocate comparison always follows the search term from corpus A.</div>
+          </div>
+        </div>
+
+        <section class="anna-subpanel is-active" id="anna-subpanel-a">
+          <div class="panel-grid">
+            <section class="panel panel-input">
+              <div class="panel-header">
+                <h2>Corpus A</h2>
+                <p>Paste a text, choose a language, and compute corpus-style statistics. Up to 100k words: no problem. Above: Your own risk...</p>
+              </div>
+
+              <label class="field">
+                <span>Language</span>
+                <select id="anna-a-language">
+                  <option>English</option>
+                  <option>Deutsch</option>
+                  <option>Français</option>
+                  <option>Italiano</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Input Text</span>
+                <textarea id="anna-a-input" rows="12" placeholder="Paste or type text for corpus A here..."></textarea>
+              </label>
+
+              <div class="button-row">
+                <button id="anna-a-analyze" type="button">Analyze Text</button>
+                <button id="anna-a-clear" type="button" class="button-secondary">Clear</button>
+              </div>
+
+              <p class="status" id="anna-a-status">Ready.</p>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div class="heading-row">
+                  <h2>Document Stats</h2>
+                  <div class="info-popover">
+                    <button class="info-button" type="button" aria-label="Document stats help">i</button>
+                    <div class="info-tooltip">Document stats summarize the full corpus. Characters exclude punctuation and whitespace. Average word length = characters / tokens. Average sentence length = tokens / sentences. Frequency lists are lemma-based; the second list excludes stopwords.</div>
+                  </div>
+                </div>
+                <p>Core counts, average lengths, and frequency lists.</p>
+              </div>
+
+              <label class="field">
+                <span>Summary</span>
+                <textarea id="anna-a-summary" rows="8" readonly></textarea>
+              </label>
+
+              <div class="output-columns">
+                <label class="field">
+                  <span>Most Frequent Lemmas</span>
+                  <textarea id="anna-a-freq-all" rows="14" readonly></textarea>
+                </label>
+
+                <label class="field">
+                  <span>Most Frequent Lemmas Without Stopwords</span>
+                  <textarea id="anna-a-freq-nostop" rows="14" readonly></textarea>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Lemma Search</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Lemma search help">i</button>
+                  <div class="info-tooltip">The search term is normalized to a lemma for matching, so inflected forms can match the same item. Collocates are counted as co-occurring surface forms within a window of 5 tokens left and 5 tokens right. KWIC shows up to 10 tokens of left and right context around each hit, and the position bar marks each hit as a vertical line at its relative token position in the full text.</div>
+                </div>
+              </div>
+              <p>Inspect one normalized search term with collocates and KWIC output.</p>
+            </div>
+
+            <div class="search-row">
+              <label class="field search-field">
+                <span>Search Term</span>
+                <input id="anna-a-search-term" type="text" placeholder="Type a lemma or word">
+              </label>
+              <button id="anna-a-search" type="button">Show Lemma Stats</button>
+            </div>
+
+            <div class="output-columns">
+              <label class="field">
+                <span>Lemma Summary</span>
+                <textarea id="anna-a-lemma-summary" rows="5" readonly></textarea>
+              </label>
+
+              <label class="field">
+                <span>Top Collocates <span class="info-popover info-inline"><button class="info-button" type="button" aria-label="Top collocates help">i</button><span class="info-tooltip">Collocates are word forms and non-word tokens found in the +/- 5 token window around each hit. The list shows the 50 most frequent co-occurring items.</span></span></span>
+                <textarea id="anna-a-collocates" rows="12" readonly></textarea>
+              </label>
+
+              <label class="field">
+                <span>Top Collocates Without Stopwords <span class="info-popover info-inline"><button class="info-button" type="button" aria-label="Top collocates without stopwords help">i</button><span class="info-tooltip">Same collocation window and counting logic as above, but stopword tokens are removed from the collocate list before frequencies are calculated.</span></span></span>
+                <textarea id="anna-a-collocates-nostop" rows="12" readonly></textarea>
+              </label>
+            </div>
+
+            <div class="field">
+              <span>KWIC <span class="info-popover info-inline"><button class="info-button" type="button" aria-label="KWIC help">i</button><span class="info-tooltip">KWIC means Key Word In Context. Each row shows the hit centered between up to 10 tokens of left context and up to 10 tokens of right context. The position bar above the table represents the full token length of the text and shows each hit as a vertical line at its relative position.</span></span></span>
+              <div class="kwic-position-wrap">
+                <div class="kwic-position-bar" id="anna-a-kwic-bar" aria-label="KWIC position overview"></div>
+                <p class="kwic-position-caption" id="anna-a-kwic-caption">Run a lemma search to see hit positions across the text.</p>
+              </div>
+              <div class="table-shell table-shell-tall kwic-shell">
+                <table class="data-table kwic-table" id="anna-a-kwic-table">
+                  <tbody id="anna-a-kwic-body">
+                    <tr>
+                      <td colspan="4">Run a lemma search to see KWIC rows.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>N-Grams</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="n-grams help">i</button>
+                  <div class="info-tooltip">An n-gram is a contiguous token sequence. This app computes all token n-grams of length 3, 4, 5, and 6, including words and non-words. Only n-grams with frequency greater than 3 are shown, and the list can be filtered and sorted.</div>
+                </div>
+              </div>
+              <p>Inspect repeated token sequences of length 3 to 6.</p>
+            </div>
+
+            <div class="search-row">
+              <label class="field search-field">
+                <span>Filter</span>
+                <input id="anna-a-ngram-filter" type="text" placeholder="Filter n-grams">
+              </label>
+            </div>
+
+            <div class="table-shell table-shell-tall">
+              <table class="data-table" id="anna-a-ngram-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><button class="sort-button" data-table="ngrams-a" data-sort-key="ngram" type="button">n-gram</button></th>
+                    <th scope="col"><button class="sort-button" data-table="ngrams-a" data-sort-key="frequency" type="button">Frequency</button></th>
+                    <th scope="col"><button class="sort-button" data-table="ngrams-a" data-sort-key="length" type="button">Length</button></th>
+                  </tr>
+                </thead>
+                <tbody id="anna-a-ngram-body">
+                  <tr>
+                    <td colspan="3">Analyze corpus A to see repeated n-grams.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Stopwords</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Stopwords help">i</button>
+                  <div class="info-tooltip">Stopwords are high-frequency function words that can be excluded from selected outputs. Editing this list affects stopword-filtered lemma frequencies and stopword-filtered collocate lists for the chosen language after re-analysis.</div>
+                </div>
+              </div>
+              <p>Edit the stopword list for the selected language. Use one word per line.</p>
+            </div>
+
+            <label class="field">
+              <span>Stopword List</span>
+              <textarea id="anna-a-stopwords" rows="12"></textarea>
+            </label>
+
+            <div class="button-row">
+              <button id="anna-a-stopwords-update" type="button">Update Stopwords</button>
+              <button id="anna-a-stopwords-reset" type="button" class="button-secondary">Reset Defaults</button>
+            </div>
+
+            <p class="status" id="anna-a-stopwords-status">Using the built-in stopword list.</p>
+          </section>
+        </section>
+
+        <section class="anna-subpanel" id="anna-subpanel-b">
+          <div class="panel-grid">
+            <section class="panel panel-input">
+              <div class="panel-header">
+                <h2>Corpus B</h2>
+                <p>Paste a text, choose a language, and compute corpus-style statistics.</p>
+              </div>
+
+              <label class="field">
+                <span>Language</span>
+                <select id="anna-b-language">
+                  <option>English</option>
+                  <option>Deutsch</option>
+                  <option>Français</option>
+                  <option>Italiano</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Input Text</span>
+                <textarea id="anna-b-input" rows="12" placeholder="Paste or type text for corpus B here..."></textarea>
+              </label>
+
+              <div class="button-row">
+                <button id="anna-b-analyze" type="button">Analyze Text</button>
+                <button id="anna-b-clear" type="button" class="button-secondary">Clear</button>
+              </div>
+
+              <p class="status" id="anna-b-status">Ready.</p>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div class="heading-row">
+                  <h2>Document Stats</h2>
+                  <div class="info-popover">
+                    <button class="info-button" type="button" aria-label="Document stats help">i</button>
+                    <div class="info-tooltip">Document stats summarize the full corpus. Characters exclude punctuation and whitespace. Average word length = characters / tokens. Average sentence length = tokens / sentences. Frequency lists are lemma-based; the second list excludes stopwords.</div>
+                  </div>
+                </div>
+                <p>Core counts, average lengths, and frequency lists.</p>
+              </div>
+
+              <label class="field">
+                <span>Summary</span>
+                <textarea id="anna-b-summary" rows="8" readonly></textarea>
+              </label>
+
+              <div class="output-columns">
+                <label class="field">
+                  <span>Most Frequent Lemmas</span>
+                  <textarea id="anna-b-freq-all" rows="14" readonly></textarea>
+                </label>
+
+                <label class="field">
+                  <span>Most Frequent Lemmas Without Stopwords</span>
+                  <textarea id="anna-b-freq-nostop" rows="14" readonly></textarea>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Lemma Search</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Lemma search help">i</button>
+                  <div class="info-tooltip">The search term is normalized to a lemma for matching, so inflected forms can match the same item. Collocates are counted as co-occurring surface forms within a window of 5 tokens left and 5 tokens right. KWIC shows up to 10 tokens of left and right context around each hit, and the position bar marks each hit as a vertical line at its relative token position in the full text.</div>
+                </div>
+              </div>
+              <p>Inspect one normalized search term with collocates and KWIC output.</p>
+            </div>
+
+            <div class="search-row">
+              <label class="field search-field">
+                <span>Search Term</span>
+                <input id="anna-b-search-term" type="text" placeholder="Type a lemma or word">
+              </label>
+              <button id="anna-b-search" type="button">Show Lemma Stats</button>
+            </div>
+
+            <div class="output-columns">
+              <label class="field">
+                <span>Lemma Summary</span>
+                <textarea id="anna-b-lemma-summary" rows="5" readonly></textarea>
+              </label>
+
+              <label class="field">
+                <span>Top Collocates <span class="info-popover info-inline"><button class="info-button" type="button" aria-label="Top collocates help">i</button><span class="info-tooltip">Collocates are word forms and non-word tokens found in the +/- 5 token window around each hit. The list shows the 50 most frequent co-occurring items.</span></span></span>
+                <textarea id="anna-b-collocates" rows="12" readonly></textarea>
+              </label>
+
+              <label class="field">
+                <span>Top Collocates Without Stopwords <span class="info-popover info-inline"><button class="info-button" type="button" aria-label="Top collocates without stopwords help">i</button><span class="info-tooltip">Same collocation window and counting logic as above, but stopword tokens are removed from the collocate list before frequencies are calculated.</span></span></span>
+                <textarea id="anna-b-collocates-nostop" rows="12" readonly></textarea>
+              </label>
+            </div>
+
+            <div class="field">
+              <span>KWIC <span class="info-popover info-inline"><button class="info-button" type="button" aria-label="KWIC help">i</button><span class="info-tooltip">KWIC means Key Word In Context. Each row shows the hit centered between up to 10 tokens of left context and up to 10 tokens of right context. The position bar above the table represents the full token length of the text and shows each hit as a vertical line at its relative position.</span></span></span>
+              <div class="kwic-position-wrap">
+                <div class="kwic-position-bar" id="anna-b-kwic-bar" aria-label="KWIC position overview"></div>
+                <p class="kwic-position-caption" id="anna-b-kwic-caption">Run a lemma search to see hit positions across the text.</p>
+              </div>
+              <div class="table-shell table-shell-tall kwic-shell">
+                <table class="data-table kwic-table" id="anna-b-kwic-table">
+                  <tbody id="anna-b-kwic-body">
+                    <tr>
+                      <td colspan="4">Run a lemma search to see KWIC rows.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>N-Grams</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="n-grams help">i</button>
+                  <div class="info-tooltip">An n-gram is a contiguous token sequence. This app computes all token n-grams of length 3, 4, 5, and 6, including words and non-words. Only n-grams with frequency greater than 3 are shown, and the list can be filtered and sorted.</div>
+                </div>
+              </div>
+              <p>Inspect repeated token sequences of length 3 to 6.</p>
+            </div>
+
+            <div class="search-row">
+              <label class="field search-field">
+                <span>Filter</span>
+                <input id="anna-b-ngram-filter" type="text" placeholder="Filter n-grams">
+              </label>
+            </div>
+
+            <div class="table-shell table-shell-tall">
+              <table class="data-table" id="anna-b-ngram-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><button class="sort-button" data-table="ngrams-b" data-sort-key="ngram" type="button">n-gram</button></th>
+                    <th scope="col"><button class="sort-button" data-table="ngrams-b" data-sort-key="frequency" type="button">Frequency</button></th>
+                    <th scope="col"><button class="sort-button" data-table="ngrams-b" data-sort-key="length" type="button">Length</button></th>
+                  </tr>
+                </thead>
+                <tbody id="anna-b-ngram-body">
+                  <tr>
+                    <td colspan="3">Analyze corpus B to see repeated n-grams.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Stopwords</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Stopwords help">i</button>
+                  <div class="info-tooltip">Stopwords are high-frequency function words that can be excluded from selected outputs. Editing this list affects stopword-filtered lemma frequencies and stopword-filtered collocate lists for the chosen language after re-analysis.</div>
+                </div>
+              </div>
+              <p>Edit the stopword list for the selected language. Use one word per line.</p>
+            </div>
+
+            <label class="field">
+              <span>Stopword List</span>
+              <textarea id="anna-b-stopwords" rows="12"></textarea>
+            </label>
+
+            <div class="button-row">
+              <button id="anna-b-stopwords-update" type="button">Update Stopwords</button>
+              <button id="anna-b-stopwords-reset" type="button" class="button-secondary">Reset Defaults</button>
+            </div>
+
+            <p class="status" id="anna-b-stopwords-status">Using the built-in stopword list.</p>
+          </section>
+        </section>
+
+        <section class="anna-subpanel" id="anna-subpanel-comparison">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Comparison</h2>
+              </div>
+              <p>Compare summary values, keyword profiles, and collocates across up to ten corpora.</p>
+            </div>
+
+            <p class="status" id="anna-compare-status">Analyze at least two corpora to populate the comparison view.</p>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Summary Values</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Summary values help">i</button>
+                  <div class="info-tooltip">These are the same document statistics shown in each corpus, displayed side by side for comparison: characters, words (tokens), unique lemmas (types), type/token ratio, sentences, average word length, and average sentence length. The type/token ratio is calculated by dividing the number of types by the number of tokens.</div>
+                </div>
+              </div>
+              <p>Side-by-side document statistics for analyzed corpora.</p>
+            </div>
+
+            <div class="table-shell">
+              <table class="data-table" id="anna-compare-summary-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Measure</th>
+                    <th scope="col">A</th>
+                    <th scope="col">B</th>
+                  </tr>
+                </thead>
+                <tbody id="anna-compare-summary-body">
+                  <tr>
+                    <td colspan="3">No comparison data yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Keyword List</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Keyword list help">i</button>
+                  <div class="info-tooltip">Each row is one lemma from either corpus. Rel % = frequency / corpus tokens * 100. Keyness is signed log-likelihood: positive values mean the lemma is relatively stronger in corpus A, negative values mean it is relatively stronger in corpus B.</div>
+                </div>
+              </div>
+              <p>Sortable lemma-level frequencies, relative frequencies, and keyness scores.</p>
+            </div>
+
+            <div class="table-shell table-shell-tall">
+              <table class="data-table" id="anna-keyword-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><button class="sort-button" data-table="keywords" data-sort-key="lemma" type="button">Lemma</button></th>
+                    <th scope="col"><button class="sort-button" data-table="keywords" data-sort-key="freqA" type="button">Freq A</button></th>
+                    <th scope="col"><button class="sort-button" data-table="keywords" data-sort-key="freqB" type="button">Freq B</button></th>
+                    <th scope="col"><button class="sort-button" data-table="keywords" data-sort-key="relA" type="button">Rel % A</button></th>
+                    <th scope="col"><button class="sort-button" data-table="keywords" data-sort-key="relB" type="button">Rel % B</button></th>
+                    <th scope="col"><button class="sort-button" data-table="keywords" data-sort-key="keyness" type="button">Keyness</button></th>
+                  </tr>
+                </thead>
+                <tbody id="anna-keyword-body">
+                  <tr>
+                    <td colspan="6">Analyze both corpora to compare keyword profiles.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Collocate Comparison</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Collocate comparison help">i</button>
+                  <div class="info-tooltip">Collocates are surface forms in a +/- 5 token window around the search hits. Relative frequencies are normalized inside the collocate list for each corpus: collocate frequency / total collocate tokens * 100. The compared item is always based on corpus A's search term.</div>
+                </div>
+              </div>
+              <p>Side-by-side collocate counts for the currently compared lemma.</p>
+            </div>
+
+            <label class="field">
+              <span>Compared Lemma</span>
+              <input id="anna-compare-lemma" type="text" readonly>
+            </label>
+
+            <div class="table-shell table-shell-tall">
+              <table class="data-table" id="anna-collocate-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><button class="sort-button" data-table="collocates" data-sort-key="lemma" type="button">Collocate</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocates" data-sort-key="freqA" type="button">Freq A</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocates" data-sort-key="freqB" type="button">Freq B</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocates" data-sort-key="relA" type="button">Rel % A</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocates" data-sort-key="relB" type="button">Rel % B</button></th>
+                  </tr>
+                </thead>
+                <tbody id="anna-collocate-body">
+                  <tr>
+                    <td colspan="5">Search for a lemma in corpus A or corpus B to compare collocates.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel panel-spaced">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Collocate Comparison Without Stopwords</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Collocate comparison without stopwords help">i</button>
+                  <div class="info-tooltip">This table uses the same collocation window and normalization as the standard collocate comparison, but stopword tokens are removed before frequencies and relative frequencies are calculated.</div>
+                </div>
+              </div>
+              <p>Side-by-side collocate counts without stopwords for the currently compared lemma.</p>
+            </div>
+
+            <div class="table-shell table-shell-tall">
+              <table class="data-table" id="anna-collocate-nostop-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><button class="sort-button" data-table="collocatesNoStop" data-sort-key="lemma" type="button">Collocate</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocatesNoStop" data-sort-key="freqA" type="button">Freq A</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocatesNoStop" data-sort-key="freqB" type="button">Freq B</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocatesNoStop" data-sort-key="relA" type="button">Rel % A</button></th>
+                    <th scope="col"><button class="sort-button" data-table="collocatesNoStop" data-sort-key="relB" type="button">Rel % B</button></th>
+                  </tr>
+                </thead>
+                <tbody id="anna-collocate-nostop-body">
+                  <tr>
+                    <td colspan="5">Search for a lemma in corpus A to compare collocates without stopwords.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="d-gram">
+        <div class="panel-grid">
+          <section class="panel panel-input">
+            <div class="panel-header">
+              <h2>Grammar Builder</h2>
+              <p>Define rules and a vocabulary. <a href="#d-gram-help">Open syntax help</a>.</p>
+            </div>
+
+            <label class="field">
+              <span>Rules</span>
+              <textarea id="grammar-rules" rows="8"></textarea>
+            </label>
+
+            <label class="field">
+              <span>Vocabulary</span>
+              <textarea id="grammar-vocab" rows="8"></textarea>
+            </label>
+
+            <div class="button-row">
+              <button id="grammar-update" type="button">Update Grammar</button>
+              <button id="grammar-reset" type="button" class="button-secondary">Reset Defaults</button>
+            </div>
+
+            <p class="status" id="grammar-status">Grammar not prepared yet.</p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Sentence Generator</h2>
+              <p>Generate all valid sentences from the current grammar.</p>
+            </div>
+
+            <button id="grammar-generate-all" type="button">Generate All Sentences</button>
+            <label class="field">
+              <span>Generated Sentences</span>
+              <textarea id="grammar-generated" rows="20" readonly></textarea>
+            </label>
+          </section>
+        </div>
+
+        <div class="panel-grid panel-grid-bottom">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Sentence Checker</h2>
+            </div>
+
+            <label class="field">
+              <span>Sentence</span>
+              <input id="grammar-check-input" type="text" placeholder="the dog chases the cat">
+            </label>
+            <button id="grammar-check-button" type="button">Check Sentence</button>
+            <label class="field">
+              <span>Result</span>
+              <textarea id="grammar-check-output" rows="4" readonly></textarea>
+            </label>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Syntax Trees</h2>
+            </div>
+
+            <label class="field">
+              <span>Sentence</span>
+              <input id="grammar-tree-input" type="text" placeholder="the dog chases the cat">
+            </label>
+            <button id="grammar-tree-button" type="button">Generate Tree</button>
+            <label class="field">
+              <span>Tree Output</span>
+              <textarea id="grammar-tree-output" rows="16" readonly></textarea>
+            </label>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Digital Poet</h2>
+            </div>
+
+            <label class="field">
+              <span>Number Of Verses</span>
+              <input id="grammar-poem-count" type="number" min="1" step="1" placeholder="4">
+            </label>
+            <button id="grammar-poem-button" type="button">Generate Poem</button>
+            <label class="field">
+              <span>Poem</span>
+              <textarea id="grammar-poem-output" rows="16" readonly></textarea>
+            </label>
+          </section>
+        </div>
+
+          <section class="panel panel-spaced" id="d-gram-help">
+          <div class="panel-header">
+            <h2>D-Gram Help</h2>
+            <p>Short English summary of the main syntax rules from the D-Gram documentation. <a href="./docs/Kurzanleitung_D-Gram.pdf" target="_blank" rel="noopener noreferrer" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">Open the German PDF</a>.</p>
+          </div>
+
+          <div class="help-copy">
+            <p><strong>1. Basic rule format</strong></p>
+            <p>Each syntax rule has the form <code>Parent -> Child1 Child2</code>. The left side contains exactly one element. The right side contains one or more elements separated by spaces.</p>
+
+            <p><strong>2. Naming</strong></p>
+            <p>You can choose category names freely, but they must be used consistently. D-Gram is case-sensitive. A common convention is uppercase for phrases or sentence parts and initial capitals for word classes, for example <code>NP</code>, <code>VP</code>, <code>Noun</code>, <code>Verb</code>.</p>
+
+            <p><strong>3. Vocabulary entries</strong></p>
+            <p>The vocabulary uses the same arrow syntax, but words appear on the right side in quotes, for example <code>Noun -> "dog" | "cat"</code>. Use <code>|</code> to list alternatives on one line. Double quotes are preferred.</p>
+
+            <p><strong>4. Features and agreement</strong></p>
+            <p>You can add features in square brackets, for example <code>NP[case=?c, num=?n]</code>. Features are separated by commas. Wildcards such as <code>?c</code> or <code>?n</code> force matching values across elements and are useful for agreement.</p>
+
+            <p><strong>5. Example with agreement</strong></p>
+            <p><code>NP[case=?c, num=?n] -> Article[case=?c, num=?n] Noun[case=?c, num=?n]</code></p>
+            <p>Lexicon entries can also carry features, for example <code>Article[case=nom, num=sg] -> "the"</code>.</p>
+
+            <p><strong>6. Important separators</strong></p>
+            <p>Use spaces between elements in rules, <code>|</code> between lexical alternatives, and commas between features inside square brackets.</p>
+
+            <p><strong>7. Important limitations</strong></p>
+            <p>D-Gram does not automatically add capitalization at the beginning of a sentence. It does not automatically add punctuation. It also inserts spaces between all elements, so punctuation or affixes must be modeled explicitly if needed.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="about">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>About DILAITS</h2>
+          </div>
+
+          <div class="about-copy">
+            <p><strong>DILAITS</strong> stands for <strong>DIgital LAnguage InsighTS</strong>. It brings together browser-based tools for exploring language data and working with grammar.</p>
+            <p><strong>Anna-Liza</strong> supports corpus-style text analysis with document statistics, lemma search, collocates, KWIC, n-grams, and corpus comparison.</p>
+            <p><strong>D-Gram</strong> supports rule-based grammar work, including sentence generation, sentence checking, syntax trees, and poem generation.</p>
+            <p><strong>Creators:</strong> <a href="https://www.zhaw.ch/de/ueber-uns/person/perc">Bojan Peric</a> and <a href="https://www.bubenhofer.com">Noah Bubenhofer</a>.</p>
+            <p><strong>Software version:</strong> 2.1, May 4, 2026.</p>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
