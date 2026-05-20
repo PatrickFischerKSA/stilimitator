@@ -473,6 +473,15 @@ function getStyleElements() {
     length: $("style-length"),
     creativity: $("style-creativity"),
     prompt: $("style-prompt"),
+    storyline: $("style-storyline"),
+    perspective: $("style-perspective"),
+    tense: $("style-tense"),
+    structure: $("style-structure"),
+    paragraphs: $("style-paragraphs"),
+    dialogue: $("style-dialogue"),
+    ending: $("style-ending"),
+    motifs: $("style-motifs"),
+    notes: $("style-notes"),
     analyze: $("style-analyze"),
     generate: $("style-generate"),
     clear: $("style-clear"),
@@ -631,6 +640,97 @@ Wiederkehrende N-Gramme:
 ${ngrams}`;
 }
 
+function parseList(text) {
+  return text
+    .split(/[\n,;]+/u)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function parseStoryBeats(text) {
+  return text
+    .split(/\n+/u)
+    .map((line) => line.replace(/^\s*(?:[-*]|\d+[.)])\s*/u, "").trim())
+    .filter(Boolean);
+}
+
+function collectStyleOptions(elements) {
+  return {
+    targetWords: elements.length.value,
+    creativity: elements.creativity.value,
+    prompt: elements.prompt.value.trim(),
+    storyline: parseStoryBeats(elements.storyline.value),
+    perspective: elements.perspective.value,
+    tense: elements.tense.value,
+    structure: elements.structure.value,
+    paragraphCount: Math.max(1, Math.min(12, Number.parseInt(elements.paragraphs.value, 10) || 4)),
+    dialogue: elements.dialogue.value,
+    ending: elements.ending.value,
+    motifs: parseList(elements.motifs.value),
+    notes: elements.notes.value.trim()
+  };
+}
+
+function formatStructuralProfile(options) {
+  const beats = options.storyline.length
+    ? options.storyline.map((beat, index) => `${index + 1}. ${beat}`).join("\n")
+    : "keine Storyline vorgegeben";
+  const motifs = options.motifs.length ? options.motifs.join(", ") : "keine";
+
+  return `Textauftrag:
+Thema/Startimpuls: ${options.prompt || "offen"}
+Storyline:
+${beats}
+
+Struktur:
+Perspektive: ${options.perspective}
+Erzählzeit: ${options.tense}
+Aufbau: ${options.structure}
+Absätze: ${options.paragraphCount}
+Dialoganteil: ${options.dialogue}
+Schlussform: ${options.ending}
+Motive: ${motifs}
+Weitere Vorgaben: ${options.notes || "keine"}`;
+}
+
+function rotateArray(values, offset) {
+  if (!values.length) {
+    return values;
+  }
+  const normalized = ((offset % values.length) + values.length) % values.length;
+  return [...values.slice(normalized), ...values.slice(0, normalized)];
+}
+
+function orderedStoryBeats(options) {
+  const beats = options.storyline.length
+    ? [...options.storyline]
+    : [options.prompt || "Ausgangslage", "Störung", "Entscheidung", "Folge"];
+
+  if (options.structure === "frame" && beats.length > 1) {
+    return [beats.at(-1), ...beats.slice(0, -1), beats.at(-1)];
+  }
+  if (options.structure === "fragmented" && beats.length > 2) {
+    return rotateArray(beats, Math.floor(beats.length / 2));
+  }
+  return beats;
+}
+
+function sentenceSeedForBeat(beat, options, index) {
+  const motifs = options.motifs.length ? options.motifs[index % options.motifs.length] : "";
+  const subject = options.prompt || motifs || beat;
+  const perspectivePhrase = {
+    first: "Ich",
+    second: "Du",
+    third: "Sie",
+    auto: ""
+  }[options.perspective] || "";
+  const tenseHint = options.tense === "present" ? "jetzt" : options.tense === "past" ? "damals" : "";
+
+  return [perspectivePhrase, subject, beat, motifs, tenseHint, options.notes]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function chooseStartPair(model, prompt) {
   const promptTokens = extractTokens(prompt)
     .map(({ token }) => normalizeApostrophes(token).toLocaleLowerCase())
@@ -668,14 +768,13 @@ function pickSentenceLength(profile) {
   return profile.sentenceLengths[Math.floor(Math.random() * profile.sentenceLengths.length)];
 }
 
-function generateFromStyleModel(model, profile, options) {
+function generateTokenRun(model, profile, options, seed, targetWords) {
   if (!model || model.fallback.length < 3) {
     return "";
   }
 
-  const targetWords = Math.max(30, Math.min(1200, Number(options.targetWords) || 180));
   const maxChoices = creativityLimit(options.creativity);
-  const generated = [...chooseStartPair(model, options.prompt)];
+  const generated = [...chooseStartPair(model, seed)];
   let wordCount = generated.filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
   let currentSentenceWords = wordCount;
   let targetSentenceLength = pickSentenceLength(profile);
@@ -726,16 +825,65 @@ function generateFromStyleModel(model, profile, options) {
     generated.push(punctuation);
   }
 
-  const promptText = options.prompt.trim();
-  const body = tokensToText(generated);
-  if (!promptText) {
-    return body;
+  return tokensToText(generated);
+}
+
+function lineForDialogue(options, beat, paragraphText) {
+  if (options.dialogue === "low") {
+    return "";
+  }
+  const shouldAdd = options.dialogue === "high" || Math.random() > 0.45;
+  if (!shouldAdd) {
+    return "";
+  }
+  const words = paragraphText.match(/[\p{L}\p{N}]+/gu) || [];
+  const anchor = words.length ? words[Math.floor(words.length / 2)] : beat;
+  return `\n"${anchor}", sagte jemand. "${beat}"`;
+}
+
+function endingSentence(options) {
+  if (options.ending === "closed") {
+    return "Am Ende blieb keine Frage offen.";
+  }
+  if (options.ending === "twist") {
+    return "Erst da zeigte sich, dass alles anders begonnen hatte.";
+  }
+  if (options.ending === "image") {
+    return "Zurück blieb nur ein Bild, ruhig und schwer im Licht.";
+  }
+  return "Und doch blieb etwas unausgesprochen.";
+}
+
+function generateFromStyleModel(model, profile, options) {
+  if (!model || model.fallback.length < 3) {
+    return "";
   }
 
-  if (promptText.endsWith(".") || promptText.endsWith("!") || promptText.endsWith("?")) {
-    return `${promptText}\n\n${body}`;
+  const targetWords = Math.max(30, Math.min(1200, Number(options.targetWords) || 180));
+  const paragraphCount = options.paragraphCount || 4;
+  const beats = orderedStoryBeats(options);
+  const wordsPerParagraph = Math.max(20, Math.round(targetWords / paragraphCount));
+  const paragraphs = [];
+
+  for (let index = 0; index < paragraphCount; index += 1) {
+    const beat = beats[index % beats.length];
+    const seed = sentenceSeedForBeat(beat, options, index);
+    const motif = options.motifs.length ? options.motifs[index % options.motifs.length] : "";
+    const opening = [beat, motif].filter(Boolean).join(" - ");
+    const generated = generateTokenRun(model, profile, options, seed, wordsPerParagraph);
+    const dialogueLine = lineForDialogue(options, beat, generated);
+    paragraphs.push(`${opening ? `${opening}. ` : ""}${generated}${dialogueLine}`);
   }
-  return `${promptText}: ${body.charAt(0).toLocaleLowerCase()}${body.slice(1)}`;
+
+  if (paragraphs.length) {
+    paragraphs[paragraphs.length - 1] = `${paragraphs.at(-1)} ${endingSentence(options)}`;
+  }
+
+  if (options.structure === "dialogue" && options.dialogue === "low") {
+    return paragraphs.map((paragraph, index) => index % 2 ? `"${paragraph}"` : paragraph).join("\n\n");
+  }
+
+  return paragraphs.join("\n\n");
 }
 
 async function analyzeStyleSample() {
@@ -756,7 +904,7 @@ async function analyzeStyleSample() {
   styleState.model = buildMarkovModel(analysis.allTokens);
   styleState.sourceText = text;
 
-  elements.profile.value = formatStyleProfile(profile, analysis);
+  elements.profile.value = `${formatStyleProfile(profile, analysis)}\n\n${formatStructuralProfile(collectStyleOptions(elements))}`;
   elements.patterns.value = formatStylePatterns(profile);
   elements.status.textContent = analysis.results.word_count < 80
     ? "Analyse fertig. Für stabilere Stile am besten längere Proben verwenden."
@@ -780,11 +928,9 @@ async function generateStyleText() {
     return;
   }
 
-  elements.output.value = generateFromStyleModel(styleState.model, styleState.profile, {
-    targetWords: elements.length.value,
-    creativity: elements.creativity.value,
-    prompt: elements.prompt.value
-  });
+  const options = collectStyleOptions(elements);
+  elements.profile.value = `${formatStyleProfile(styleState.profile, styleState.analysis)}\n\n${formatStructuralProfile(options)}`;
+  elements.output.value = generateFromStyleModel(styleState.model, styleState.profile, options);
   elements.status.textContent = "Neuer Text generiert.";
 }
 
@@ -2177,6 +2323,15 @@ function initializeStyleLab() {
   elements.clear.addEventListener("click", () => {
     elements.input.value = "";
     elements.prompt.value = "";
+    elements.storyline.value = "";
+    elements.motifs.value = "";
+    elements.notes.value = "";
+    elements.perspective.value = "auto";
+    elements.tense.value = "auto";
+    elements.structure.value = "linear";
+    elements.paragraphs.value = "4";
+    elements.dialogue.value = "low";
+    elements.ending.value = "open";
     elements.profile.value = "";
     elements.patterns.value = "";
     elements.output.value = "";

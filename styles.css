@@ -344,6 +344,10 @@ button:focus {
   margin-bottom: 16px;
 }
 
+.style-controls-wide {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+}
+
 .table-shell {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -507,7 +511,8 @@ button:focus {
   .panel-grid,
   .panel-grid-bottom,
   .style-grid,
-  .style-controls {
+  .style-controls,
+  .style-controls-wide {
     grid-template-columns: 1fr;
   }
 }

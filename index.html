@@ -708,7 +708,77 @@
 
             <label class="field">
               <span>Thema oder Startimpuls</span>
-              <input id="style-prompt" type="text" placeholder="Optional, z. B. ein Ort, Begriff oder erster Satz">
+              <input id="style-prompt" type="text" placeholder="z. B. ein Ort, Konflikt, Motiv oder erster Satz">
+            </label>
+
+            <label class="field">
+              <span>Storyline</span>
+              <textarea id="style-storyline" rows="7" placeholder="Pro Zeile ein Erzählschritt, z. B. Ausgangslage, Störung, Entscheidung, Wendung, Schlussbild."></textarea>
+            </label>
+
+            <div class="style-controls style-controls-wide">
+              <label class="field">
+                <span>Erzählperspektive</span>
+                <select id="style-perspective">
+                  <option value="auto" selected>aus Stilprobe ableiten</option>
+                  <option value="first">Ich-Erzählung</option>
+                  <option value="third">Er/Sie-Erzählung</option>
+                  <option value="second">Du-Erzählung</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Erzählzeit</span>
+                <select id="style-tense">
+                  <option value="auto" selected>aus Stilprobe ableiten</option>
+                  <option value="past">Vergangenheit</option>
+                  <option value="present">Gegenwart</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Aufbau</span>
+                <select id="style-structure">
+                  <option value="linear" selected>linear</option>
+                  <option value="frame">Rahmenerzählung</option>
+                  <option value="fragmented">fragmentarisch</option>
+                  <option value="dialogue">dialogisch</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Absätze</span>
+                <input id="style-paragraphs" type="number" min="1" max="12" step="1" value="4">
+              </label>
+
+              <label class="field">
+                <span>Dialoganteil</span>
+                <select id="style-dialogue">
+                  <option value="low" selected>wenig</option>
+                  <option value="medium">mittel</option>
+                  <option value="high">hoch</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Schlussform</span>
+                <select id="style-ending">
+                  <option value="open" selected>offen</option>
+                  <option value="closed">geschlossen</option>
+                  <option value="twist">Wendung</option>
+                  <option value="image">Schlussbild</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Motive oder Wörter, die vorkommen sollen</span>
+              <input id="style-motifs" type="text" placeholder="Kommagetrennt, z. B. Bahnhof, Brief, Regen">
+            </label>
+
+            <label class="field">
+              <span>Weitere strukturelle Vorgaben</span>
+              <textarea id="style-notes" rows="4" placeholder="z. B. Rückblende im zweiten Absatz, kurze Schlusssequenz, innerer Monolog, wechselnde Schauplätze."></textarea>
             </label>
 
             <div class="button-row">
