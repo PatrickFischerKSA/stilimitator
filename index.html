@@ -23,6 +23,7 @@
     <nav class="tool-switcher" aria-label="Tool selector">
       <button class="tab-button is-active" data-tab="anna-liza" type="button">Anna-Liza</button>
       <button class="tab-button" data-tab="d-gram" type="button">D-Gram</button>
+      <button class="tab-button" data-tab="style-lab" type="button">Style Lab</button>
       <button class="tab-button" data-tab="about" type="button">About</button>
     </nav>
 
@@ -663,6 +664,96 @@
             <p><strong>7. Important limitations</strong></p>
             <p>D-Gram does not automatically add capitalization at the beginning of a sentence. It does not automatically add punctuation. It also inserts spaces between all elements, so punctuation or affixes must be modeled explicitly if needed.</p>
           </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="style-lab">
+        <div class="panel-grid style-grid">
+          <section class="panel panel-input">
+            <div class="panel-header">
+              <h2>Style Lab</h2>
+              <p>Analysiere Textproben und erzeuge neue Texte, die Wortwahl, Rhythmus und wiederkehrende Formulierungen der Probe aufnehmen.</p>
+            </div>
+
+            <label class="field">
+              <span>Language</span>
+              <select id="style-language">
+                <option>Deutsch</option>
+                <option>English</option>
+                <option>Français</option>
+                <option>Italiano</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Textproben</span>
+              <textarea id="style-input" rows="18" placeholder="Füge hier mehrere Textproben desselben Stils ein..."></textarea>
+            </label>
+
+            <div class="style-controls">
+              <label class="field">
+                <span>Zielumfang in Wörtern</span>
+                <input id="style-length" type="number" min="30" max="1200" step="10" value="180">
+              </label>
+
+              <label class="field">
+                <span>Freiheit</span>
+                <select id="style-creativity">
+                  <option value="tight">nah an der Probe</option>
+                  <option value="balanced" selected>ausgewogen</option>
+                  <option value="loose">variabler</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="field">
+              <span>Thema oder Startimpuls</span>
+              <input id="style-prompt" type="text" placeholder="Optional, z. B. ein Ort, Begriff oder erster Satz">
+            </label>
+
+            <div class="button-row">
+              <button id="style-analyze" type="button">Stil analysieren</button>
+              <button id="style-generate" type="button">Neuen Text generieren</button>
+              <button id="style-clear" type="button" class="button-secondary">Leeren</button>
+            </div>
+
+            <p class="status" id="style-status">Bereit.</p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="heading-row">
+                <h2>Stilprofil</h2>
+                <div class="info-popover">
+                  <button class="info-button" type="button" aria-label="Style profile help">i</button>
+                  <div class="info-tooltip">Das Profil nutzt die vorhandene Anna-Liza-Analyse: Token, Lemmata, Satzlängen, Stoppwortfilter, häufige Lemmata und N-Gramme. Die Textgenerierung ist lokal und regelbasiert, kein externer KI-Dienst.</div>
+                </div>
+              </div>
+              <p>Messwerte und Signale, auf denen der Generator aufbaut.</p>
+            </div>
+
+            <label class="field">
+              <span>Analyse</span>
+              <textarea id="style-profile" rows="18" readonly></textarea>
+            </label>
+
+            <label class="field">
+              <span>Stilbausteine</span>
+              <textarea id="style-patterns" rows="12" readonly></textarea>
+            </label>
+          </section>
+        </div>
+
+        <section class="panel panel-spaced">
+          <div class="panel-header">
+            <h2>Generierter Text</h2>
+            <p>Der Text orientiert sich am Korpusmodell der Probe. Kurze, einheitliche Proben erzeugen bewusst engere Varianten.</p>
+          </div>
+
+          <label class="field">
+            <span>Output</span>
+            <textarea id="style-output" rows="18" readonly></textarea>
+          </label>
         </section>
       </section>
 

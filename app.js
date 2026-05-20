@@ -83,6 +83,13 @@ const grammarState = {
   generatedSentences: []
 };
 
+const styleState = {
+  analysis: null,
+  profile: null,
+  model: null,
+  sourceText: ""
+};
+
 const LEMMA_LANGUAGE_MAP = {
   English: "en",
   Deutsch: "de",
@@ -457,6 +464,328 @@ async function analyzeText(text, language) {
     language,
     lemmaCounts: toCountMap(lemmaList)
   };
+}
+
+function getStyleElements() {
+  return {
+    language: $("style-language"),
+    input: $("style-input"),
+    length: $("style-length"),
+    creativity: $("style-creativity"),
+    prompt: $("style-prompt"),
+    analyze: $("style-analyze"),
+    generate: $("style-generate"),
+    clear: $("style-clear"),
+    status: $("style-status"),
+    profile: $("style-profile"),
+    patterns: $("style-patterns"),
+    output: $("style-output")
+  };
+}
+
+function mean(values) {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function median(values) {
+  if (!values.length) {
+    return 0;
+  }
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function countMatches(text, pattern) {
+  return text.match(pattern)?.length ?? 0;
+}
+
+function weightedEntries(counterEntries, limit = 80) {
+  return counterEntries
+    .slice(0, limit)
+    .map(([value, count]) => ({ value, count }));
+}
+
+function pickWeighted(entries) {
+  const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+  if (!total) {
+    return entries[0]?.value;
+  }
+  let cursor = Math.random() * total;
+  for (const entry of entries) {
+    cursor -= entry.count;
+    if (cursor <= 0) {
+      return entry.value;
+    }
+  }
+  return entries.at(-1)?.value;
+}
+
+function isSentenceEndToken(token) {
+  return /^[.!?]+$/u.test(token);
+}
+
+function isOpeningPunctuation(token) {
+  return /^[([{"]$/u.test(token);
+}
+
+function isClosingPunctuation(token) {
+  return /^[,.;:!?%)}\]"'»]+$/u.test(token);
+}
+
+function tokensToText(tokens) {
+  let output = "";
+
+  tokens.forEach((token, index) => {
+    const previous = tokens[index - 1] ?? "";
+    const needsSpace = index > 0
+      && !isClosingPunctuation(token)
+      && !isOpeningPunctuation(previous)
+      && previous !== "«";
+    output += `${needsSpace ? " " : ""}${token}`;
+  });
+
+  return output
+    .replace(/\s+([,.;:!?])/gu, "$1")
+    .replace(/([.!?])\s+(\p{Ll})/gu, (_, punctuation, letter) => `${punctuation} ${letter.toLocaleUpperCase()}`)
+    .trim();
+}
+
+function buildMarkovModel(tokens) {
+  const transitions = new Map();
+  const starts = [];
+  const wordTokens = tokens.filter((token) => /[\p{L}\p{N}]/u.test(token));
+
+  for (let index = 0; index < tokens.length - 2; index += 1) {
+    const key = `${tokens[index]}\u0001${tokens[index + 1]}`;
+    if (!transitions.has(key)) {
+      transitions.set(key, []);
+    }
+    transitions.get(key).push(tokens[index + 2]);
+
+    if (index === 0 || isSentenceEndToken(tokens[index - 1])) {
+      starts.push([tokens[index], tokens[index + 1]]);
+    }
+  }
+
+  return {
+    transitions,
+    starts,
+    fallback: wordTokens.length ? wordTokens : tokens
+  };
+}
+
+function buildStyleProfile(text, analysis) {
+  const sentenceLengths = splitSentences(text)
+    .map((sentence) => extractTokens(sentence).filter(({ isWordLike }) => isWordLike).length)
+    .filter((length) => length > 0);
+  const punctuationCounts = toCounter(analysis.allTokens.filter((token) => /^[^\p{L}\p{N}\s]+$/u.test(token)));
+  const quoteCount = countMatches(text, /["«»„“”]/gu);
+  const paragraphCount = text.split(/\n\s*\n/u).filter((paragraph) => paragraph.trim()).length || 1;
+  const topContentLemmas = analysis.results.sorted_lemma_nostop_counter
+    .filter(([lemma]) => /[\p{L}\p{N}]/u.test(lemma))
+    .slice(0, 20);
+  const repeatedNgrams = analysis.ngrams
+    .slice()
+    .sort((left, right) => right.frequency - left.frequency || left.ngram.localeCompare(right.ngram))
+    .slice(0, 20);
+
+  return {
+    sentenceLengths,
+    averageSentenceLength: mean(sentenceLengths),
+    medianSentenceLength: median(sentenceLengths),
+    shortestSentence: sentenceLengths.length ? Math.min(...sentenceLengths) : 0,
+    longestSentence: sentenceLengths.length ? Math.max(...sentenceLengths) : 0,
+    punctuationCounts,
+    quoteCount,
+    paragraphCount,
+    topContentLemmas,
+    repeatedNgrams,
+    typeTokenRatio: analysis.results.type_token_ratio
+  };
+}
+
+function formatStyleProfile(profile, analysis) {
+  return `Tokens: ${analysis.results.word_count}
+Sätze: ${analysis.results.sent_count}
+Absätze: ${profile.paragraphCount}
+Durchschnittliche Satzlänge: ${formatNumber(profile.averageSentenceLength)} Wörter
+Median-Satzlänge: ${formatNumber(profile.medianSentenceLength)} Wörter
+Kürzester/längster Satz: ${profile.shortestSentence}/${profile.longestSentence} Wörter
+Type/Token-Ratio: ${formatNumber(profile.typeTokenRatio, 4)}
+Anführungszeichen: ${profile.quoteCount}
+Häufige Interpunktion:
+${formatCounterEntries(profile.punctuationCounts.slice(0, 12)) || "keine"}`;
+}
+
+function formatStylePatterns(profile) {
+  const lemmas = formatCounterEntries(profile.topContentLemmas) || "keine";
+  const ngrams = profile.repeatedNgrams.length
+    ? profile.repeatedNgrams.map((row) => `${row.ngram}: ${row.frequency}`).join("\n")
+    : "keine wiederholten N-Gramme ab Frequenz 4";
+
+  return `Prägende Lemmata ohne Stoppwörter:
+${lemmas}
+
+Wiederkehrende N-Gramme:
+${ngrams}`;
+}
+
+function chooseStartPair(model, prompt) {
+  const promptTokens = extractTokens(prompt)
+    .map(({ token }) => normalizeApostrophes(token).toLocaleLowerCase())
+    .filter((token) => /[\p{L}\p{N}]/u.test(token));
+
+  if (promptTokens.length) {
+    const promptSet = new Set(promptTokens);
+    const matchedStarts = model.starts.filter((start) => start.some((token) => promptSet.has(normalizeApostrophes(token).toLocaleLowerCase())));
+    if (matchedStarts.length) {
+      return matchedStarts[Math.floor(Math.random() * matchedStarts.length)];
+    }
+  }
+
+  if (model.starts.length) {
+    return model.starts[Math.floor(Math.random() * model.starts.length)];
+  }
+
+  return model.fallback.slice(0, 2);
+}
+
+function creativityLimit(value) {
+  if (value === "tight") {
+    return 5;
+  }
+  if (value === "loose") {
+    return 30;
+  }
+  return 14;
+}
+
+function pickSentenceLength(profile) {
+  if (!profile.sentenceLengths.length) {
+    return 12;
+  }
+  return profile.sentenceLengths[Math.floor(Math.random() * profile.sentenceLengths.length)];
+}
+
+function generateFromStyleModel(model, profile, options) {
+  if (!model || model.fallback.length < 3) {
+    return "";
+  }
+
+  const targetWords = Math.max(30, Math.min(1200, Number(options.targetWords) || 180));
+  const maxChoices = creativityLimit(options.creativity);
+  const generated = [...chooseStartPair(model, options.prompt)];
+  let wordCount = generated.filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
+  let currentSentenceWords = wordCount;
+  let targetSentenceLength = pickSentenceLength(profile);
+  let guard = 0;
+
+  while (wordCount < targetWords && guard < targetWords * 20) {
+    guard += 1;
+
+    if (isSentenceEndToken(generated.at(-1) ?? "")) {
+      const nextStart = chooseStartPair(model, "");
+      generated.push(...nextStart);
+      const addedWords = nextStart.filter((token) => /[\p{L}\p{N}]/u.test(token)).length;
+      wordCount += addedWords;
+      currentSentenceWords = addedWords;
+      targetSentenceLength = pickSentenceLength(profile);
+      continue;
+    }
+
+    const key = `${generated.at(-2)}\u0001${generated.at(-1)}`;
+    const candidates = model.transitions.get(key);
+    let nextToken;
+
+    if (candidates?.length) {
+      const filteredCandidates = currentSentenceWords < Math.max(4, targetSentenceLength * 0.7)
+        ? candidates.filter((token) => !isSentenceEndToken(token))
+        : candidates;
+      const ranked = weightedEntries(toCounter(filteredCandidates.length ? filteredCandidates : candidates), maxChoices);
+      nextToken = pickWeighted(ranked);
+    } else {
+      nextToken = pickWeighted(weightedEntries(profile.punctuationCounts.filter(([token]) => isSentenceEndToken(token)), 4))
+        || ".";
+    }
+
+    generated.push(nextToken);
+    if (/[\p{L}\p{N}]/u.test(nextToken)) {
+      wordCount += 1;
+      currentSentenceWords += 1;
+    }
+    if (isSentenceEndToken(nextToken)) {
+      currentSentenceWords = 0;
+      targetSentenceLength = pickSentenceLength(profile);
+    }
+  }
+
+  if (!isSentenceEndToken(generated.at(-1) ?? "")) {
+    const punctuation = pickWeighted(weightedEntries(profile.punctuationCounts.filter(([token]) => isSentenceEndToken(token)), 4))
+      || ".";
+    generated.push(punctuation);
+  }
+
+  const promptText = options.prompt.trim();
+  const body = tokensToText(generated);
+  if (!promptText) {
+    return body;
+  }
+
+  if (promptText.endsWith(".") || promptText.endsWith("!") || promptText.endsWith("?")) {
+    return `${promptText}\n\n${body}`;
+  }
+  return `${promptText}: ${body.charAt(0).toLocaleLowerCase()}${body.slice(1)}`;
+}
+
+async function analyzeStyleSample() {
+  const elements = getStyleElements();
+  const text = elements.input.value.trim();
+
+  if (!text) {
+    elements.status.textContent = "Bitte zuerst Textproben einfügen.";
+    return false;
+  }
+
+  elements.status.textContent = "Analysiere Stilprofil...";
+  const analysis = await analyzeText(text, elements.language.value);
+  const profile = buildStyleProfile(text, analysis);
+
+  styleState.analysis = analysis;
+  styleState.profile = profile;
+  styleState.model = buildMarkovModel(analysis.allTokens);
+  styleState.sourceText = text;
+
+  elements.profile.value = formatStyleProfile(profile, analysis);
+  elements.patterns.value = formatStylePatterns(profile);
+  elements.status.textContent = analysis.results.word_count < 80
+    ? "Analyse fertig. Für stabilere Stile am besten längere Proben verwenden."
+    : "Analyse fertig.";
+  return true;
+}
+
+async function generateStyleText() {
+  const elements = getStyleElements();
+  const currentInput = elements.input.value.trim();
+
+  if (!styleState.analysis || styleState.analysis.language !== elements.language.value || styleState.sourceText !== currentInput) {
+    const analyzed = await analyzeStyleSample();
+    if (!analyzed) {
+      return;
+    }
+  }
+
+  if (!currentInput) {
+    elements.status.textContent = "Bitte zuerst Textproben einfügen.";
+    return;
+  }
+
+  elements.output.value = generateFromStyleModel(styleState.model, styleState.profile, {
+    targetWords: elements.length.value,
+    creativity: elements.creativity.value,
+    prompt: elements.prompt.value
+  });
+  elements.status.textContent = "Neuer Text generiert.";
 }
 
 async function normalizeSearchTerm(searchTerm, language, analysis = null) {
@@ -1828,6 +2157,45 @@ function initializeDGram() {
   prepareGrammar();
 }
 
+function initializeStyleLab() {
+  const elements = getStyleElements();
+
+  elements.analyze.addEventListener("click", () => {
+    analyzeStyleSample().catch((error) => {
+      console.error(error);
+      elements.status.textContent = `Analyse fehlgeschlagen: ${error.message}`;
+    });
+  });
+
+  elements.generate.addEventListener("click", () => {
+    generateStyleText().catch((error) => {
+      console.error(error);
+      elements.status.textContent = `Generierung fehlgeschlagen: ${error.message}`;
+    });
+  });
+
+  elements.clear.addEventListener("click", () => {
+    elements.input.value = "";
+    elements.prompt.value = "";
+    elements.profile.value = "";
+    elements.patterns.value = "";
+    elements.output.value = "";
+    styleState.analysis = null;
+    styleState.profile = null;
+    styleState.model = null;
+    styleState.sourceText = "";
+    elements.status.textContent = "Bereit.";
+  });
+
+  elements.language.addEventListener("change", () => {
+    styleState.analysis = null;
+    styleState.profile = null;
+    styleState.model = null;
+    styleState.sourceText = "";
+    elements.status.textContent = "Sprache geändert. Bitte Stil neu analysieren.";
+  });
+}
+
 function initializeTabs() {
   document.querySelectorAll(".tab-button").forEach((button) => {
     button.addEventListener("click", () => switchTab(button.dataset.tab));
@@ -1837,3 +2205,4 @@ function initializeTabs() {
 initializeTabs();
 initializeAnnaLiza();
 initializeDGram();
+initializeStyleLab();
