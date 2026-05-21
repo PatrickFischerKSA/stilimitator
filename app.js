@@ -482,8 +482,10 @@ function getStyleElements() {
     ending: $("style-ending"),
     motifs: $("style-motifs"),
     notes: $("style-notes"),
+    file: $("style-file"),
     analyze: $("style-analyze"),
     generate: $("style-generate"),
+    export: $("style-export"),
     clear: $("style-clear"),
     status: $("style-status"),
     profile: $("style-profile"),
@@ -655,15 +657,18 @@ function parseStoryBeats(text) {
 }
 
 function collectStyleOptions(elements) {
+  const storyline = parseStoryBeats(elements.storyline.value);
+  const fallbackParagraphCount = Number.parseInt(elements.paragraphs.value, 10) || 4;
+
   return {
     targetWords: elements.length.value,
     creativity: elements.creativity.value,
     prompt: elements.prompt.value.trim(),
-    storyline: parseStoryBeats(elements.storyline.value),
+    storyline,
     perspective: elements.perspective.value,
     tense: elements.tense.value,
     structure: elements.structure.value,
-    paragraphCount: Math.max(1, Math.min(12, Number.parseInt(elements.paragraphs.value, 10) || 4)),
+    paragraphCount: Math.max(1, Math.min(12, storyline.length || fallbackParagraphCount)),
     dialogue: elements.dialogue.value,
     ending: elements.ending.value,
     motifs: parseList(elements.motifs.value),
@@ -2044,6 +2049,10 @@ function prepareGrammar() {
 }
 
 function initializeAnnaLiza() {
+  if (!$("anna-a-language")) {
+    return;
+  }
+
   createAdditionalCorpusTabs();
   insertCorpusFileInputs();
   refreshAllStopwordEditors();
@@ -2182,6 +2191,10 @@ function initializeAnnaLiza() {
 }
 
 function initializeDGram() {
+  if (!$("grammar-rules")) {
+    return;
+  }
+
   $("grammar-rules").value = DEFAULT_RULES;
   $("grammar-vocab").value = DEFAULT_VOCAB;
 
@@ -2306,6 +2319,28 @@ function initializeDGram() {
 function initializeStyleLab() {
   const elements = getStyleElements();
 
+  elements.file.addEventListener("change", () => {
+    const [file] = elements.file.files;
+    if (!file) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        elements.status.textContent = "Lade Stilprobe...";
+        elements.input.value = await extractUploadedText(file);
+        styleState.analysis = null;
+        styleState.profile = null;
+        styleState.model = null;
+        styleState.sourceText = "";
+        elements.status.textContent = `Stilprobe geladen: ${file.name}`;
+      } catch (error) {
+        console.error(error);
+        elements.status.textContent = `Upload fehlgeschlagen: ${error.message}`;
+      }
+    })();
+  });
+
   elements.analyze.addEventListener("click", () => {
     analyzeStyleSample().catch((error) => {
       console.error(error);
@@ -2320,8 +2355,28 @@ function initializeStyleLab() {
     });
   });
 
+  elements.export.addEventListener("click", () => {
+    const text = elements.output.value.trim();
+    if (!text) {
+      elements.status.textContent = "Kein Output zum Exportieren vorhanden.";
+      return;
+    }
+
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "stilimitator-output.txt";
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    elements.status.textContent = "Output exportiert.";
+  });
+
   elements.clear.addEventListener("click", () => {
     elements.input.value = "";
+    elements.file.value = "";
     elements.prompt.value = "";
     elements.storyline.value = "";
     elements.motifs.value = "";
@@ -2352,6 +2407,10 @@ function initializeStyleLab() {
 }
 
 function initializeTabs() {
+  if (!document.querySelector(".tab-button")) {
+    return;
+  }
+
   document.querySelectorAll(".tab-button").forEach((button) => {
     button.addEventListener("click", () => switchTab(button.dataset.tab));
   });
